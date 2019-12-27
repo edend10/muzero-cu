@@ -282,29 +282,28 @@ class Game(object):
 
     def make_image(self, state_index: int):
     # Game specific feature planes.
+    # TODO: need to fast forward game to state_index?
         return np.array(self.environment.board).reshape(1, 1, 1, -1)
 
-    def make_target(self, state_index: int, num_unroll_steps: int, td_steps: int,
-                  to_play: Player):
-    # The value target is the discounted root value of the search tree N steps
-    # into the future, plus the discounted sum of all rewards until then.
+    def make_target(self, state_index: int, num_unroll_steps: int, td_steps: int, to_play: Player):
+        # The value target is the discounted root value of the search tree N steps
+        # into the future, plus the discounted sum of all rewards until then.
         targets = []
         for current_index in range(state_index, state_index + num_unroll_steps + 1):
-          bootstrap_index = current_index + td_steps
-          if bootstrap_index < len(self.root_values):
-            value = self.root_values[bootstrap_index] * self.discount**td_steps
-          else:
-            value = 0
+            bootstrap_index = current_index + td_steps
+            if bootstrap_index < len(self.root_values):
+                value = self.root_values[bootstrap_index] * self.discount**td_steps
+            else:
+                value = 0
 
-          for i, reward in enumerate(self.rewards[current_index:bootstrap_index]):
-            value += reward * self.discount**i  # pytype: disable=unsupported-operands
+            for i, reward in enumerate(self.rewards[current_index:bootstrap_index]):
+                value += reward * self.discount**i  # pytype: disable=unsupported-operands
 
-          if current_index < len(self.root_values):
-            targets.append((value, self.rewards[current_index],
-                            self.child_visits[current_index]))
-          else:
-            # States past the end of games are treated as absorbing states.
-            targets.append((0, 0, []))
+            if current_index < len(self.root_values):
+                targets.append((value, self.rewards[current_index], self.child_visits[current_index]))
+            else:
+                # States past the end of games are treated as absorbing states.
+                targets.append((0, 0, []))
         return targets
 
     def to_play(self) -> Player:
@@ -339,7 +338,7 @@ class ReplayBuffer(object):
 
   def sample_position(self, game) -> int:
     # Sample position from game either uniformly or according to some priority.
-    return np.random.choice(game.history)
+    return np.random.choice(game.history).index
 
 
 import torch
@@ -635,7 +634,7 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, we
 
         # Recurrent steps, from action and previous hidden state.
         for action in actions:
-            value, reward, policy_logits, hidden_state = network.recurrent_inference(hidden_state, action)
+            value, reward, policy_logits, hidden_state = network.recurrent_inference(hidden_state, action.index)
             predictions.append((1.0 / len(actions), value, reward, policy_logits))
 
             #TODO: no need to scale gradients in half?
@@ -644,12 +643,11 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, we
             gradient_scale, value, reward, policy_logits = prediction
             target_value, target_reward, target_policy = target
 
-            reward_loss += mse_criterion(torch.Tensor([target_reward]), reward)
-            value_loss += mse_criterion(torch.Tensor([target_value]), value)
-
-            #TODO: need to transform policy or target policy from/to int/array?
-            # and/or target policy to tensor?
-            policy_loss += bce_with_logits_criterion(torch.Tensor(target_policy), policy_logits)
+            if len(target_policy) > 0:
+                # absorbing state passed end of game
+                reward_loss += mse_criterion(torch.Tensor([target_reward]), reward)
+                value_loss += mse_criterion(torch.Tensor([target_value]), value)
+                policy_loss += bce_with_logits_criterion(torch.Tensor(target_policy), policy_logits)
 
     total_loss = reward_loss + value_loss + policy_loss
 
