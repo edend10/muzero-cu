@@ -243,7 +243,6 @@ class Environment(object):
 
 
 import numpy as np
-import gym
 from gym_tictactoe.env import TicTacToeEnv
 
 
@@ -340,7 +339,7 @@ class ReplayBuffer(object):
 
   def sample_position(self, game) -> int:
     # Sample position from game either uniformly or according to some priority.
-    return -1
+    return np.random.choice(game.history)
 
 
 import torch
