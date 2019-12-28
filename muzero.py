@@ -1,3 +1,17 @@
+from comet_ml import Experiment
+import json
+
+log_comet = True
+
+if log_comet:
+    with open('comet_config.json', 'r') as f:
+        comet_config = json.load(f)
+
+    experiment = Experiment(api_key=comet_config['api_key'],
+                                project_name=comet_config['project_name'], workspace=comet_config['workspace'])
+
+    experiment.add_tags(comet_config['bootstrap_tags'])
+
 # Lint as: python3
 """Pseudocode description of the MuZero algorithm."""
 # pylint: disable=unused-argument
@@ -110,8 +124,8 @@ def make_board_game_config(action_space_size: int, max_moves: int,
       max_moves=max_moves,
       discount=1.0,
       dirichlet_alpha=dirichlet_alpha,
-      num_simulations=800,
-      batch_size=2048,
+      num_simulations=10,
+      batch_size=32,
       td_steps=max_moves,  # Always use Monte Carlo return.
       num_actors=1,
       lr_init=lr_init,
@@ -282,7 +296,11 @@ class Game(object):
 
     def make_image(self, state_index: int):
     # Game specific feature planes.
-    # TODO: need to fast forward game to state_index?
+        self.environment.reset()
+
+        for i in range(state_index):
+            self.apply(self.history[i])
+
         return np.array(self.environment.board).reshape(1, 1, 1, -1)
 
     def make_target(self, state_index: int, num_unroll_steps: int, td_steps: int, to_play: Player):
@@ -398,18 +416,18 @@ class Network(nn.Module):
 
 class SharedStorage(object):
 
-  def __init__(self):
-    self._networks = {}
+    def __init__(self):
+        self._networks = {}
 
-  def latest_network(self) -> Network:
-    if self._networks:
-      return self._networks[max(self._networks.keys())]
-    else:
-      # policy -> uniform, value -> 0, reward -> 0
-      return make_uniform_network()
+    def latest_network(self) -> Network:
+        if self._networks:
+            return self._networks[max(self._networks.keys())]
+        else:
+            # policy -> uniform, value -> 0, reward -> 0
+            return make_uniform_network()
 
-  def save_network(self, step: int, network: Network):
-    self._networks[step] = network
+    def save_network(self, step: int, network: Network):
+        self._networks[step] = network
 
 
 ##### End Helpers ########
@@ -464,7 +482,7 @@ def run_selfplay(config: MuZeroConfig, storage: SharedStorage,
         replay_buffer.save_game(game)
 
         game_counter += 1
-        if game_counter % 100 or game_counter == 1:
+        if game_counter % 100 == 0 or game_counter == 1:
             print('Worker so far played {} games...'.format(game_counter))
 
 
@@ -653,15 +671,23 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, we
 
     total_loss.backward()
     optimizer.step()
-    network.steps += 1
 
     # reporting
     avg_policy_loss = policy_loss.item() / len(batch)
     avg_reward_loss = reward_loss.item() / len(batch)
     avg_value_loss = value_loss.item() / len(batch)
     avg_total_loss = total_loss.item() / len(batch)
+
     print('total_loss: {} | policy loss: {} | reward loss: {} | value loss: {}'
           .format(avg_total_loss, avg_policy_loss, avg_reward_loss, avg_value_loss))
+
+    if log_comet:
+        experiment.log_metric('policy_loss', avg_policy_loss, step=network.steps)
+        experiment.log_metric('reward_loss', avg_reward_loss, step=network.steps)
+        experiment.log_metric('value_loss', avg_value_loss, step=network.steps)
+        experiment.log_metric('total_loss', avg_total_loss, step=network.steps)
+
+    network.steps += 1
 
 
 def scalar_loss(prediction, target) -> float:
@@ -693,10 +719,12 @@ def launch_job(f, *args):
 
 
 def make_uniform_network():
-    return Network(num_blocks=2, channels_in=1, size_x=9, size_y=1, latent_dim=4, action_space_size=9)
+    return Network(num_blocks=1, channels_in=1, size_x=9, size_y=1, latent_dim=4, action_space_size=9)
 
 
 config = make_tictactoe_config()
+if log_comet:
+    experiment.log_parameters(config.__dict__)
 # vs_random_once = random_vs_random()
 # print('random_vs_random = ', sorted(vs_random_once.items()), end='\n')
 network = muzero(config)
