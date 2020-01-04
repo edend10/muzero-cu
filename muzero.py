@@ -169,7 +169,7 @@ def make_shogi_config() -> MuZeroConfig:
 
 def make_tictactoe_config() -> MuZeroConfig:
     return make_board_game_config(
-        action_space_size=9, max_moves=9, dirichlet_alpha=0.3, lr_init=0.1
+        action_space_size=9, max_moves=9, dirichlet_alpha=0.05, lr_init=0.01
     )
 
 
@@ -403,7 +403,7 @@ class Network(nn.Module):
 
     def initial_inference(self, image) -> NetworkOutput:
         # representation + prediction function
-        image = torch.Tensor(image).to(device)
+        image = torch.Tensor(image).to(device).reshape(1, 1, 3, 3)
         initial_state = self.representation(image)
         policy_logits, value = self.prediction(initial_state)
         return NetworkOutput(value, torch.Tensor([0]).to(device), policy_logits, initial_state)
@@ -411,7 +411,7 @@ class Network(nn.Module):
     def recurrent_inference(self, hidden_state, action) -> NetworkOutput:
         action_arr = np.zeros(config.action_space_size)
         action_arr[action] = 1
-        action_arr = action_arr.reshape(1, 1, 1, -1)
+        action_arr = action_arr.reshape(1, 1, 3, 3)#.reshape(1, 1, 1, -1)
 
         # dynamics + prediction function
         hidden_state = torch.Tensor(hidden_state).to(device)
@@ -643,10 +643,11 @@ def train_network(config: MuZeroConfig,
     # network = Network()
     network = make_uniform_network()
     global_step += 1
-    optimizer = torch.optim.SGD(network.parameters(),
-                                lr=config.lr_init,
-                                weight_decay=config.lr_decay_rate,
-                                momentum=config.momentum)
+    # optimizer = torch.optim.SGD(network.parameters(),
+    #                             lr=config.lr_init,
+    #                             weight_decay=config.lr_decay_rate,
+    #                             momentum=config.momentum)
+    optimizer = torch.optim.Adam(network.parameters(), lr=config.lr_init, weight_decay=config.lr_decay_rate)
 
     for i in range(config.training_steps):
         if i % config.checkpoint_interval == 0:
@@ -694,6 +695,7 @@ def test_network(network, random_baseline_results):
         experiment.log_metric('X_nonlose_rate', X_nonlose_rate, step=network.steps)
         experiment.log_metric('avg_nonlose_rate', avg_nonlose_rate, step=network.steps)
 
+
 def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, step):
     network.train()
     optimizer.zero_grad()
@@ -725,6 +727,9 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
                 value_loss += mse_criterion(torch.Tensor([target_value]).to(device), value)
                 policy_loss += cross_entropy_criterion(policy_logits.reshape(1, -1), torch.LongTensor([np.argmax(target_policy)]).to(device))
                 # policy_loss += bce_with_logits_criterion(torch.Tensor(target_policy).to(device), policy_logits)
+                # print(target_policy)
+                # print(torch.log(policy_logits))
+                # policy_loss += torch.sum(-torch.Tensor(target_policy).to(device) * torch.log(policy_logits))
             else:
                 # absorbing state passed end of game
                 pass
@@ -754,11 +759,6 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
     network.steps += 1
 
 
-def scalar_loss(prediction, target) -> float:
-    # MSE in board games, cross entropy between categorical values in Atari.
-    return -1
-
-
 ######### End Training ###########
 ##################################
 
@@ -784,7 +784,7 @@ def launch_job(f, *args):
 
 
 def make_uniform_network():
-    return Network(num_blocks=1, channels_in=1, size_x=9, size_y=1, latent_dim=4, action_space_size=9)
+    return Network(num_blocks=1, channels_in=1, size_x=3, size_y=3, latent_dim=3, action_space_size=9)
 
 
 from collections import defaultdict
@@ -804,7 +804,6 @@ def network_vs_random(network, play_as='O', n=100):
                 current_observation = game.make_image(-1)
                 expand_node(root, game.to_play(), game.legal_actions(),
                             network.initial_inference(current_observation))
-                add_exploration_noise(config, root)
                 run_mcts(config, root, game.action_history(), network)
                 action = select_action(config, len(game.history), root, network)
             else:

@@ -36,13 +36,13 @@ class Representation(nn.Module):
     def __init__(self, num_blocks, channels_in, latent_dim=4):
         super().__init__()
         self.conv0 = Conv2DBlock(channels_in, latent_dim, kernel_size=3, bn=True, relu=True)
-        # self.residual_blocks = nn.ModuleList([ResidualBlock(latent_dim)] * num_blocks)
+        self.residual_blocks = nn.ModuleList([ResidualBlock(latent_dim)] * num_blocks)
 
     def forward(self, x):
         x = self.conv0(x)
 
-        # for block in self.residual_blocks:
-        #     x = block(x)
+        for block in self.residual_blocks:
+            x = block(x)
 
         return x
 
@@ -51,8 +51,8 @@ class Prediction(nn.Module):
     def __init__(self, num_blocks, channels_in, size_x, size_y, policy_output_size, latent_dim=4):
         super().__init__()
         self.conv0 = Conv2DBlock(channels_in, latent_dim, 3, bn=True, relu=True)
-        # self.residual_blocks = nn.ModuleList([ResidualBlock(latent_dim)] * num_blocks)
-        # self.shared_conv = Conv2DBlock(latent_dim, latent_dim, 1, bn=True, relu=True)
+        self.residual_blocks = nn.ModuleList([ResidualBlock(latent_dim)] * num_blocks)
+        self.shared_conv = Conv2DBlock(latent_dim, latent_dim, 1, bn=True, relu=True)
 
         latent_size = latent_dim * size_x * size_y
 
@@ -69,10 +69,10 @@ class Prediction(nn.Module):
     def forward(self, x):
         x = self.conv0(x)
 
-        # for block in self.residual_blocks:
-        #     x = block(x)
+        for block in self.residual_blocks:
+            x = block(x)
 
-        # x = self.shared_conv(x)
+        x = self.shared_conv(x)
 
         x = torch.flatten(x)
 
@@ -87,7 +87,7 @@ class Dynamics(nn.Module):
         super().__init__()
 
         self.conv0 = Conv2DBlock(state_channels_in + action_channels_in, latent_dim, 3, bn=True, relu=True)
-        # self.residual_blocks = nn.ModuleList([ResidualBlock(latent_dim)] * num_blocks)
+        self.residual_blocks = nn.ModuleList([ResidualBlock(latent_dim)] * num_blocks)
 
         latent_size = size_x * size_y * latent_dim
 
@@ -100,8 +100,8 @@ class Dynamics(nn.Module):
         x = torch.cat(x_tuple, dim=1)
 
         x = self.conv0(x)
-        # for block in self.residual_blocks:
-        #     x = block(x)
+        for block in self.residual_blocks:
+            x = block(x)
 
         state_output = x
 
