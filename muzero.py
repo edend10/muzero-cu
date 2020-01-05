@@ -792,7 +792,7 @@ from collections import defaultdict
 
 def network_vs_random(network, play_as='O', n=100):
     # network against random
-    results = defaultdict(int)
+    results = {'O': 0, 'X': 0, 'Draw': 0}
     for i in range(n):
         first_turn = play_as == 'O'
         turn = first_turn
@@ -821,12 +821,12 @@ def network_vs_random(network, play_as='O', n=100):
             r = 'Draw'
 
         results[r] += 1
-    return dict(results)
+    return results
 
 
 def random_vs_random(n=10000, scale_to=None):
     # results should be biased in favor of 'O' player as it always starts
-    results = defaultdict(int)
+    results = {'O': 0, 'X': 0, 'Draw': 0}
     for i in range(n):
         first_turn = i % 2 == 0
         turn = first_turn
@@ -847,12 +847,11 @@ def random_vs_random(n=10000, scale_to=None):
 
         results[r] += 1
 
-        ret = dict(results)
         if scale_to:
-            for key in ret.keys():
-                ret[key] = ret[key] * (scale_to / n)
+            for key in results.keys():
+                results[key] = results[key] * (scale_to / n)
 
-    return ret
+    return results
 
 
 config = make_tictactoe_config()
