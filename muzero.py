@@ -414,7 +414,7 @@ class Network(nn.Module):
         action_arr = action_arr.reshape(1, 1, 3, 3)#.reshape(1, 1, 1, -1)
 
         # dynamics + prediction function
-        hidden_state = torch.Tensor(hidden_state).to(device)
+        # hidden_state = torch.Tensor(hidden_state).to(device) <- already a tensor!
         action_tensor = torch.Tensor(action_arr).to(device)
 
         next_state, reward = self.dynamics((hidden_state, action_tensor))
@@ -643,11 +643,11 @@ def train_network(config: MuZeroConfig,
     # network = Network()
     network = make_uniform_network()
     global_step += 1
-    # optimizer = torch.optim.SGD(network.parameters(),
-    #                             lr=config.lr_init,
-    #                             weight_decay=config.lr_decay_rate,
-    #                             momentum=config.momentum)
-    optimizer = torch.optim.Adam(network.parameters(), lr=config.lr_init, weight_decay=config.lr_decay_rate)
+    optimizer = torch.optim.SGD(network.parameters(),
+                                lr=config.lr_init,
+                                weight_decay=config.lr_decay_rate,
+                                momentum=config.momentum)
+    # optimizer = torch.optim.Adam(network.parameters(), lr=config.lr_init, weight_decay=config.lr_decay_rate)
 
     for i in range(config.training_steps):
         if i % config.checkpoint_interval == 0:
