@@ -2,3 +2,4 @@
 *.ipynb*
 __pycache__
 comet_config.json
+*.swp
