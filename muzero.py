@@ -847,12 +847,11 @@ def random_vs_random(n=10000, scale_to=None):
 
         results[r] += 1
 
-        ret = dict(results)
-        if scale_to:
-            for key in ret.keys():
-                ret[key] = ret[key] * (scale_to / n)
+    if scale_to:
+        for key in results.keys():
+            results[key] = results[key] * (scale_to / n)
 
-    return ret
+    return results
 
 
 config = make_tictactoe_config()
