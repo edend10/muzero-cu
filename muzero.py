@@ -111,7 +111,7 @@ class MuZeroConfig(object):
         self.checkpoint_interval = int(1e3)
         self.train_report_interval = int(1e2)
         self.test_interval = int(1e3)
-        self.window_size = int(1e6)
+        self.window_size = int(1e4)
         self.batch_size = batch_size
         self.num_unroll_steps = 5
         self.td_steps = td_steps
