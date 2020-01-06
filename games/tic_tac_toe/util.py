@@ -1,6 +1,7 @@
 import numpy as np
 from gym_tictactoe.env import TicTacToeEnv, check_game_status
 import games.tic_tac_toe.models
+import games.tic_tac_toe.models_gcn
 from muzero.util import Network, make_board_game_config, mcts_action
 
 
@@ -126,7 +127,7 @@ def test_network(config, network, random_baseline_results, experiment=None):
 
 def make_uniform_network(device, config):
     modules = {
-        'representation': games.tic_tac_toe.models.Representation,
+        'representation': games.tic_tac_toe.models_gcn.Representation,
         'prediction': games.tic_tac_toe.models.Prediction,
         'dynamics': games.tic_tac_toe.models.Dynamics
     }
@@ -136,7 +137,7 @@ def make_uniform_network(device, config):
                    channels_in=1,
                    size_x=3,
                    size_y=3,
-                   latent_dim=9,
+                   latent_dim=1,
                    action_space_size=config.action_space_size,
                    device=device,
                    config=config)
