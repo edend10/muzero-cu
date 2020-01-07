@@ -19,7 +19,7 @@ def make_config() -> MuZeroConfig:
 
     return MuZeroConfig(
         action_space_size=7,
-        max_moves=27000,  # Half an hour at action repeat 4.
+        max_moves=10, #27000,  # Half an hour at action repeat 4.
         discount=0.997,
         dirichlet_alpha=0.25,
         num_simulations=10,
@@ -44,7 +44,7 @@ def network_vs_atari(config, network, n=100):
         game = config.new_game()
 
         while not game.terminal():
-            action = mcts_action(config, network, game)
+            _, action = mcts_action(config, network, game, exploration_noise=False)
             game.apply(action)
 
         results.append(sum(game.rewards))

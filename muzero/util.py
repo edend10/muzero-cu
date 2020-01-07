@@ -74,12 +74,13 @@ def run_selfplay(config: MuZeroConfig, storage: SharedStorage,
             print('Worker so far played {} games...'.format(game_counter))
 
 
-def mcts_action(config, network, game):
+def mcts_action(config, network, game, exploration_noise=True):
     root = Node(0)
     current_observation = game.make_image(-1)
     expand_node(root, game.to_play(), game.legal_actions(),
                 network.initial_inference(current_observation))
-    add_exploration_noise(config, root)
+    if exploration_noise:
+        add_exploration_noise(config, root)
 
     # We then run a Monte Carlo Tree Search using only action sequences and the
     # model learned by the network.

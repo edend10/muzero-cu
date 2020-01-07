@@ -60,7 +60,7 @@ def network_vs_random(config, network, play_as='O', n=100):
 
         while not game.terminal():
             if turn:
-                _, action = mcts_action(config, network, game)
+                _, action = mcts_action(config, network, game, exploration_noise=False)
             else:
                 action = np.random.choice(game.legal_actions())
             game.apply(action)
