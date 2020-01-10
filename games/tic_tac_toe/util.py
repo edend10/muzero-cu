@@ -127,9 +127,9 @@ def test_network(config, network, random_baseline_results, experiment=None):
 
 def make_uniform_network(device, config):
     modules = {
-        'representation': games.tic_tac_toe.models_gcn.Representation,
-        'prediction': games.tic_tac_toe.models_gcn.Prediction,
-        'dynamics': games.tic_tac_toe.models_gcn.Dynamics
+        'representation': games.tic_tac_toe.models.Representation,
+        'prediction': games.tic_tac_toe.models.Prediction,
+        'dynamics': games.tic_tac_toe.models.Dynamics
     }
 
     return Network(modules=modules,
