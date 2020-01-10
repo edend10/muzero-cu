@@ -179,16 +179,22 @@ class Game(object):
     """A single episode of interaction with the environment."""
 
     def __init__(self, action_space_size: int, discount: float,
-                 init_env, get_env_legal_actions, get_env_obs, get_to_play, turn_based):
+                 init_env, get_env_legal_actions, get_env_obs, get_to_play, turn_based,
+                 history=[],
+                 rewards=[],
+                 child_visits=[],
+                 root_values=[],
+                 done=False):
+        self.init_env = init_env
         self.environment = init_env()  # Game specific environment.
         self.current_observation = self.environment.reset()
-        self.history = []
-        self.rewards = []
-        self.child_visits = []
-        self.root_values = []
+        self.history = history
+        self.rewards = rewards
+        self.child_visits = child_visits
+        self.root_values = root_values
         self.action_space_size = action_space_size
         self.discount = discount
-        self.done = False
+        self.done = done
         self.get_env_legal_actions = get_env_legal_actions
         self.get_env_obs = get_env_obs
         self.get_to_play = get_to_play
@@ -258,6 +264,15 @@ class Game(object):
     def action_history(self) -> ActionHistory:
         return ActionHistory(self.history, self.action_space_size, self.turn_based)
 
+    def clone(self):
+        return Game(self.action_space_size,
+                      self.discount, self.init_env,
+                      self.get_env_legal_actions, self.get_env_obs,
+                      self.get_to_play, self.turn_based,
+                      list(self.history), list(self.rewards),
+                      list(self.child_visits), list(self.root_values),
+                      self.done)
+
 
 class ReplayBuffer(object):
 
@@ -283,11 +298,11 @@ class ReplayBuffer(object):
 
     def sample_game(self) -> Game:
         # Sample game from buffer either uniformly or according to some priority.
-        return np.random.choice(self.buffer)
+        return np.random.choice(self.buffer).clone()
 
     def sample_position(self, game) -> int:
         # Sample position from game either uniformly or according to some priority.
-        return np.random.choice(game.history).index
+        return np.random.randint(len(game.history))
 
 
 class NetworkOutput(typing.NamedTuple):
