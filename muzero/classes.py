@@ -180,10 +180,10 @@ class Game(object):
 
     def __init__(self, action_space_size: int, discount: float,
                  init_env, get_env_legal_actions, get_env_obs, get_to_play, turn_based,
-                 history=[],
-                 rewards=[],
-                 child_visits=[],
-                 root_values=[],
+                 history=list(),
+                 rewards=list(),
+                 child_visits=list(),
+                 root_values=list(),
                  done=False):
         self.init_env = init_env
         self.environment = init_env()  # Game specific environment.
@@ -208,13 +208,14 @@ class Game(object):
         # Game specific calculation of legal actions.
         return [Action(legal_action) for legal_action in self.get_env_legal_actions(self.environment)]
 
-    def apply(self, action: Action):
+    def apply(self, action: Action, save_history=True):
         obs, reward, done, _ = self.environment.step(action.index)
         self.current_observation = obs
         self.rewards.append(reward)
         self.done = done
 
-        self.history.append(action)
+        if save_history:
+            self.history.append(action)
 
         return obs, reward, done
 
@@ -233,7 +234,7 @@ class Game(object):
             self.current_observation = self.environment.reset()
 
         for i in range(state_index):
-            self.current_observation, _, _ = self.apply(self.history[i])
+            self.current_observation, _, _ = self.apply(self.history[i], save_history=False)
 
         return self.get_env_obs(self.current_observation)
 

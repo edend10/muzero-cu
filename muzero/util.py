@@ -248,28 +248,28 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
     if config.optimize_reward:
         total_loss += reward_loss
 
-    if total_loss > 0:
+    # if total_loss > 0:
 
-        total_loss.backward()
-        optimizer.step()
+    total_loss.backward()
+    optimizer.step()
 
-        if step % config.train_report_interval == 0:
-            # reporting
-            avg_policy_loss = policy_loss.item() / len(batch)
-            # avg_reward_loss = reward_loss.item() / len(batch)
-            avg_value_loss = value_loss.item() / len(batch)
-            avg_total_loss = total_loss.item() / len(batch)
+    if step % config.train_report_interval == 0:
+        # reporting
+        avg_policy_loss = policy_loss.item() / len(batch)
+        # avg_reward_loss = reward_loss.item() / len(batch)
+        avg_value_loss = value_loss.item() / len(batch)
+        avg_total_loss = total_loss.item() / len(batch)
 
-            print('step {} - total_loss: {} | policy loss: {} | value loss: {}'
-                  .format(network.steps, avg_total_loss, avg_policy_loss, avg_value_loss))
+        print('step {} - total_loss: {} | policy loss: {} | value loss: {}'
+              .format(network.steps, avg_total_loss, avg_policy_loss, avg_value_loss))
 
-            if experiment:
-                experiment.log_metric('policy_loss', avg_policy_loss, step=network.steps)
-                # experiment.log_metric('reward_loss', avg_reward_loss, step=network.steps)
-                experiment.log_metric('value_loss', avg_value_loss, step=network.steps)
-                experiment.log_metric('total_loss', avg_total_loss, step=network.steps)
+        if experiment:
+            experiment.log_metric('policy_loss', avg_policy_loss, step=network.steps)
+            # experiment.log_metric('reward_loss', avg_reward_loss, step=network.steps)
+            experiment.log_metric('value_loss', avg_value_loss, step=network.steps)
+            experiment.log_metric('total_loss', avg_total_loss, step=network.steps)
 
-        network.steps += 1
+    network.steps += 1
 
 
 # Stubs to make the typechecker happy.
