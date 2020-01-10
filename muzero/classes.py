@@ -180,18 +180,18 @@ class Game(object):
 
     def __init__(self, action_space_size: int, discount: float,
                  init_env, get_env_legal_actions, get_env_obs, get_to_play, turn_based,
-                 history=list(),
-                 rewards=list(),
-                 child_visits=list(),
-                 root_values=list(),
+                 history=None,
+                 rewards=None,
+                 child_visits=None,
+                 root_values=None,
                  done=False):
         self.init_env = init_env
         self.environment = init_env()  # Game specific environment.
         self.current_observation = self.environment.reset()
-        self.history = history
-        self.rewards = rewards
-        self.child_visits = child_visits
-        self.root_values = root_values
+        self.history = history if history else []
+        self.rewards = rewards if rewards else []
+        self.child_visits = child_visits if child_visits else []
+        self.root_values = root_values if root_values else []
         self.action_space_size = action_space_size
         self.discount = discount
         self.done = done
