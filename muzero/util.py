@@ -16,7 +16,7 @@ def make_board_game_config(action_space_size: int, max_moves: int,
                            turn_based,
                            optimize_reward=True) -> MuZeroConfig:
     def visit_softmax_temperature(num_moves, training_steps):
-        if num_moves < 30:
+        if num_moves < 2:
             return 1.0
         else:
             return 0.0  # Play according to the max.
@@ -76,7 +76,7 @@ def run_selfplay(config: MuZeroConfig, storage: SharedStorage,
 
 def mcts_action(config, network, game, exploration_noise=True):
     root = Node(0)
-    current_observation = game.make_image(-1)
+    current_observation = game.make_image()
     expand_node(root, game.to_play(), game.legal_actions(),
                 network.initial_inference(current_observation))
     if exploration_noise:
@@ -274,11 +274,8 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
 
 # Stubs to make the typechecker happy.
 def softmax_sample(distribution, temperature: float):
-    # from: https://github.com/Zeta36/muzero/blob/master/muzero.py
-    if temperature == 0:
-        temperature = 1
-
-    distribution = np.array(distribution) ** (1 / temperature)
+    # adapted from: https://github.com/Zeta36/muzero/blob/master/muzero.py
+    distribution = np.array([x[0] for x in distribution]) ** temperature
     p_sum = distribution.sum()
     sample_temp = distribution / p_sum
     return 0, np.argmax(np.random.multinomial(1, sample_temp, 1))

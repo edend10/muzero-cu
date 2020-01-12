@@ -211,11 +211,11 @@ class Game(object):
     def apply(self, action: Action, save_history=True):
         obs, reward, done, _ = self.environment.step(action.index)
         self.current_observation = obs
-        self.rewards.append(reward)
         self.done = done
 
         if save_history:
             self.history.append(action)
+            self.rewards.append(reward)
 
         return obs, reward, done
 
@@ -228,13 +228,13 @@ class Game(object):
         ])
         self.root_values.append(root.value())
 
-    def make_image(self, state_index: int, reset=False):
+    def make_image(self, state_index=None):
         # Game specific feature planes.
-        if reset:
+        if state_index:
             self.current_observation = self.environment.reset()
 
-        for i in range(state_index):
-            self.current_observation, _, _ = self.apply(self.history[i], save_history=False)
+            for i in range(state_index):
+                self.current_observation, _, _ = self.apply(self.history[i], save_history=False)
 
         return self.get_env_obs(self.current_observation)
 
@@ -292,7 +292,7 @@ class ReplayBuffer(object):
     def sample_batch(self, num_unroll_steps: int, td_steps: int):
         games = [self.sample_game() for _ in range(self.batch_size)]
         game_pos = [(g, self.sample_position(g)) for g in games]
-        return [(g.make_image(i, reset=True),
+        return [(g.make_image(i),
                  g.history[i:i + num_unroll_steps],
                  g.make_target(i, num_unroll_steps, td_steps, g.to_play()))
                 for (g, i) in game_pos]
