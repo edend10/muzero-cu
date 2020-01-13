@@ -131,7 +131,7 @@ def run_mcts(config: MuZeroConfig, root: Node, action_history: ActionHistory,
                                                      history.last_action())
         expand_node(node, history.to_play(), history.action_space(), network_output)
 
-        backpropagate(search_path, network_output.value, history.to_play(),
+        backpropagate(search_path, network_output.value.item(), history.to_play(),
                       config.discount, min_max_stats)
 
 

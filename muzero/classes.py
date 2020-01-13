@@ -233,7 +233,7 @@ class Game(object):
         if state_index:
             self.current_observation = self.environment.reset()
 
-            for i in range(state_index):
+            for i in range(state_index+1):
                 self.current_observation, _, _ = self.apply(self.history[i], save_history=False)
 
         return self.get_env_obs(self.current_observation)
