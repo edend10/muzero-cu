@@ -50,7 +50,7 @@ def random_vs_random(config, n=10000, scale_to=None):
     return results
 
 
-def network_vs_random(config, network, play_as='O', n=1000):
+def network_vs_random(config, network, play_as='O', n=1000, scale_to=None):
     # network against random
     results = {'O': 0, 'X': 0, 'Draw': 0}
     for i in range(n):
@@ -76,6 +76,11 @@ def network_vs_random(config, network, play_as='O', n=1000):
             r = 'Draw'
 
         results[r] += 1
+
+        if scale_to:
+            for key in results.keys():
+                results[key] = results[key] * (scale_to / n)
+
     return results
 
 
