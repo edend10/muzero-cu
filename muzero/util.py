@@ -273,12 +273,14 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
 
 
 # Stubs to make the typechecker happy.
-def softmax_sample(distribution, temperature: float):
+def softmax_sample(visit_counts, temperature: float):
     # adapted from: https://github.com/Zeta36/muzero/blob/master/muzero.py
-    distribution = np.array([x[0] for x in distribution]) ** temperature
+    distribution = np.array([x[0] for x in visit_counts]) ** temperature
+    actions = [x[1] for x in visit_counts]
     p_sum = distribution.sum()
     sample_temp = distribution / p_sum
-    return 0, np.argmax(np.random.multinomial(1, sample_temp, 1))
+    selected_action_index = np.argmax(np.random.multinomial(1, sample_temp, 1))
+    return actions[selected_action_index]
 
 
 def train_network(config: MuZeroConfig,
