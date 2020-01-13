@@ -230,10 +230,10 @@ class Game(object):
 
     def make_image(self, state_index=None):
         # Game specific feature planes.
-        if state_index:
+        if state_index is not None:
             self.current_observation = self.environment.reset()
 
-            for i in range(state_index+1):
+            for i in range(state_index):
                 self.current_observation, _, _ = self.apply(self.history[i], save_history=False)
 
         return self.get_env_obs(self.current_observation)
@@ -303,7 +303,7 @@ class ReplayBuffer(object):
 
     def sample_position(self, game) -> int:
         # Sample position from game either uniformly or according to some priority.
-        return np.random.randint(len(game.history))
+        return np.random.randint(len(game.history)) # 0: initial position, 1-action_space fast forward to history position
 
 
 class NetworkOutput(typing.NamedTuple):

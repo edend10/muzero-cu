@@ -16,7 +16,7 @@ def make_board_game_config(action_space_size: int, max_moves: int,
                            turn_based,
                            optimize_reward=True) -> MuZeroConfig:
     def visit_softmax_temperature(num_moves, training_steps):
-        if num_moves < 2:
+        if num_moves >= 0:
             return 1.0
         else:
             return 0.0  # Play according to the max.
@@ -120,15 +120,15 @@ def run_mcts(config: MuZeroConfig, root: Node, action_history: ActionHistory,
         search_path = [node]
 
         while node.expanded():
-            action, node = select_child(config, node, min_max_stats)
-            history.add_action(action)
+            action_index, node = select_child(config, node, min_max_stats)
+            history.add_action(Action(action_index))
             search_path.append(node)
 
         # Inside the search tree we use the dynamics function to obtain the next
         # hidden state given an action and the previous hidden state.
         parent = search_path[-2]
         network_output = network.recurrent_inference(parent.hidden_state,
-                                                     history.last_action())
+                                                     history.last_action().index)
         expand_node(node, history.to_play(), history.action_space(), network_output)
 
         backpropagate(search_path, network_output.value.item(), history.to_play(),
