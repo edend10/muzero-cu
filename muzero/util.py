@@ -205,7 +205,6 @@ def select_action(config: MuZeroConfig, num_moves: int, node: Node,
 
 def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, step, config, device, experiment=None):
     network.train()
-    optimizer.zero_grad()
 
     mse_criterion = torch.nn.MSELoss()
     cross_entropy_criterion = torch.nn.CrossEntropyLoss()
@@ -231,10 +230,10 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
 
             if len(target_policy) > 0:
                 # reward_loss += mse_criterion(torch.Tensor([target_reward]).to(device), reward)
-                value_loss += mse_criterion(torch.Tensor([target_value]).to(device), value)
+                value_loss += gradient_scale * mse_criterion(torch.Tensor([target_value]).to(device), value)
                 if config.optimize_reward:
-                    reward_loss += mse_criterion(torch.Tensor([target_reward]).to(device), reward)
-                policy_loss += cross_entropy_criterion(policy_logits.reshape(1, -1),
+                    reward_loss += gradient_scale * mse_criterion(torch.Tensor([target_reward]).to(device), reward)
+                policy_loss += gradient_scale * cross_entropy_criterion(policy_logits.reshape(1, -1),
                                                        torch.LongTensor([np.argmax(target_policy)]).to(device))
                 # policy_loss += bce_with_logits_criterion(torch.Tensor(target_policy).to(device), policy_logits)
                 # print(target_policy)
@@ -248,8 +247,8 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
     if config.optimize_reward:
         total_loss += reward_loss
 
-    # if total_loss > 0:
-
+    optimizer.zero_grad()
+    torch.nn.utils.clip_grad_norm_(network.parameters(), 10)
     total_loss.backward()
     optimizer.step()
 
@@ -274,13 +273,12 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
 
 # Stubs to make the typechecker happy.
 def softmax_sample(visit_counts, temperature: float):
-    # adapted from: https://github.com/Zeta36/muzero/blob/master/muzero.py
     distribution = np.array([x[0] for x in visit_counts]) ** temperature
-    actions = [x[1] for x in visit_counts]
     p_sum = distribution.sum()
     sample_temp = distribution / p_sum
-    selected_action_index = np.argmax(np.random.multinomial(1, sample_temp, 1))
-    return actions[selected_action_index]
+    # selected_action_index = np.argmax(np.random.multinomial(1, sample_temp, 1))
+    selected_action_index = np.argmax(sample_temp)
+    return visit_counts[selected_action_index][1]
 
 
 def train_network(config: MuZeroConfig,
