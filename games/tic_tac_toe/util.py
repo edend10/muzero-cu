@@ -77,9 +77,9 @@ def network_vs_random(config, network, play_as='O', n=1000, scale_to=100):
 
         results[r] += 1
 
-        if scale_to:
-            for key in results.keys():
-                results[key] = results[key] * (scale_to / n)
+    if scale_to:
+        for key in results.keys():
+            results[key] = results[key] * (scale_to / n)
 
     return results
 
