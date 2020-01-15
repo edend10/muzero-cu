@@ -81,9 +81,20 @@ if log_comet:
 
 test_network_params = None
 if game_to_play == 'tictactoe':
-    test_network_params = game_utils.random_vs_random(config, n=10000, scale_to=100)
-    print('random_vs_random = X: {} | O: {} | Draw: {}'.format(test_network_params['X'], test_network_params['O'],
-                                                               test_network_params['Draw']))
+    test_network_params = dict()
+    test_network_params['random'] = game_utils.random_vs_random(config, n=10000, scale_to=100)
+    test_network_params['optimal'] = dict()
+    test_network_params['optimal']['first'] = game_utils.optimal_vs_random(config, play_as='O', n=1000, scale_to=100)
+    test_network_params['optimal']['second'] = game_utils.optimal_vs_random(config, play_as='X', n=1000, scale_to=100)
+    print('random_vs_random = O: {} | X: {} | Draw: {}'.format(test_network_params['random']['O'],
+                                                               test_network_params['random']['X'],
+                                                               test_network_params['random']['Draw']))
+    print('optimal_vs_random = O: {} | X: {} | Draw: {}'.format(test_network_params['optimal']['first']['O'],
+                                                                test_network_params['optimal']['first']['X'],
+                                                                test_network_params['optimal']['first']['Draw']))
+    print('random_vs_optimal = O: {} | X: {} | Draw: {}'.format(test_network_params['optimal']['second']['O'],
+                                                                test_network_params['optimal']['second']['X'],
+                                                                test_network_params['optimal']['second']['Draw']))
 
 network = muzero(config, game_utils.make_uniform_network,
                  game_utils.test_network, test_network_params,

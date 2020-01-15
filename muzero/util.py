@@ -207,8 +207,7 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
     network.train()
 
     mse_criterion = torch.nn.MSELoss()
-    cross_entropy_criterion = torch.nn.CrossEntropyLoss()
-    # bce_with_logits_criterion = torch.nn.BCEWithLogitsLoss()
+    # cross_entropy_criterion = torch.nn.CrossEntropyLoss()
 
     # reward_loss = 0
     value_loss, reward_loss, policy_loss = 0, 0, 0
@@ -233,12 +232,10 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
                 value_loss += gradient_scale * mse_criterion(torch.Tensor([target_value]).to(device), value)
                 if config.optimize_reward:
                     reward_loss += gradient_scale * mse_criterion(torch.Tensor([target_reward]).to(device), reward)
-                policy_loss += gradient_scale * cross_entropy_criterion(policy_logits.reshape(1, -1),
-                                                       torch.LongTensor([np.argmax(target_policy)]).to(device))
-                # policy_loss += bce_with_logits_criterion(torch.Tensor(target_policy).to(device), policy_logits)
-                # print(target_policy)
-                # print(torch.log(policy_logits))
-                # policy_loss += torch.sum(-torch.Tensor(target_policy).to(device) * torch.log(policy_logits))
+                # policy_loss += gradient_scale * cross_entropy_criterion(policy_logits.reshape(1, -1),
+                #                                        torch.LongTensor([np.argmax(target_policy)]).to(device))
+                policy_loss += gradient_scale * -(torch.log_softmax(policy_logits.reshape(1, -1), dim=1) * torch.Tensor(target_policy).to(device)).sum()
+
             else:
                 # absorbing state passed end of game
                 pass
