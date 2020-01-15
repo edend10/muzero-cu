@@ -174,6 +174,8 @@ def lift_over_baseline(name, O_results, X_results, baseline_results_O, baseline_
 def test_network(config, network, test_network_params, experiment=None):
     network.eval()
 
+    print('testing network...')
+
     O_results = network_vs_random(config, network, play_as='O')
     X_results = network_vs_random(config, network, play_as='X')
 
