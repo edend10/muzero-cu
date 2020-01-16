@@ -97,7 +97,7 @@ def optimal_vs_random(config, play_as='O', n=1000, scale_to=100):
 
         while not game.terminal():
             if turn:
-                action = get_optimal_action(game.environment.board)
+                action = get_optimal_action(game.environment.board, me=1 if play_as == 'O' else 2, rival=2 if play_as == 'O' else 1)
             else:
                 action = np.random.choice(game.legal_actions())
             game.apply(action)

@@ -33,35 +33,35 @@ def testWinMove(b, mark, i):
     return checkWin(bCopy, mark)
 
 
-def getComputerMove(b):
+def getComputerMove(b, me, rival):
     # Check computer win moves
     for i in range(0, 9):
-        if b[i] == 0 and testWinMove(b, 2, i):
+        if b[i] == 0 and testWinMove(b, me, i):
             return i
     # Check player win moves
     for i in range(0, 9):
-        if b[i] == 0 and testWinMove(b, 1, i):
+        if b[i] == 0 and testWinMove(b, rival, i):
             return i
     # Check computer fork opportunities
     for i in range(0, 9):
-        if b[i] == 0 and testForkMove(b, 2, i):
+        if b[i] == 0 and testForkMove(b, me, i):
             return i
     #  Check player fork opportunities
     for i in range(0, 9):
-        if b[i] == 0 and testForkMove(b, 1, i):
-            return i
-    # Play a corner
-    for i in [0, 2, 6, 8]:
-        if b[i] == 0:
+        if b[i] == 0 and testForkMove(b, rival, i):
             return i
     # Play center
     if b[4] == 0:
         return 4
+    # Play a corner
+    for i in [0, 2, 6, 8]:
+        if b[i] == 0:
+            return i
     #Play a side
     for i in [1, 3, 5, 7]:
         if b[i] == 0:
             return i
 
 
-def get_optimal_action(board):
-    return Action(getComputerMove(board))
+def get_optimal_action(board, me, rival):
+    return Action(getComputerMove(board, me, rival))
