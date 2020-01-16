@@ -54,7 +54,7 @@ def muzero(config: MuZeroConfig, network_factory, test_network, test_network_par
     threads = []
     print('Launching {} self play job(s)...'.format(config.num_actors))
     for _ in range(config.num_actors):
-        t = threading.Thread(target=launch_job, args=(run_selfplay, config, storage, replay_buffer), daemon=True)
+        t = threading.Thread(target=launch_job, args=(run_selfplay, config, storage, replay_buffer, device), daemon=True)
         threads.append(t)
         # launch_job(run_selfplay, config, storage, replay_buffer)
 

@@ -14,6 +14,7 @@ def make_board_game_config(action_space_size: int, max_moves: int,
                            get_env_obs,
                            get_to_play,
                            turn_based,
+                           make_uniform_network,
                            optimize_reward=True) -> MuZeroConfig:
     def visit_softmax_temperature(num_moves, training_steps):
         if num_moves >= 0:
@@ -39,6 +40,7 @@ def make_board_game_config(action_space_size: int, max_moves: int,
         get_env_obs=get_env_obs,
         get_to_play=get_to_play,
         turn_based=turn_based,
+        make_uniform_network=make_uniform_network,
         optimize_reward=optimize_reward
     )
 
@@ -61,17 +63,22 @@ def make_shogi_config() -> MuZeroConfig:
 # Each self-play job is independent of all others; it takes the latest network
 # snapshot, produces a game and makes it available to the training job by
 # writing it to a shared replay buffer.
-def run_selfplay(config: MuZeroConfig, storage: SharedStorage,
-                 replay_buffer: ReplayBuffer):
+def run_selfplay(config: MuZeroConfig,
+                 storage: SharedStorage,
+                 replay_buffer: ReplayBuffer,
+                 device):
     game_counter = 0
-    while True:
-        network = storage.latest_network()
-        game = play_game(config, network)
-        replay_buffer.save_game(game)
+    with torch.no_grad():
+        while True:
+            network = config.make_uniform_network(device, config)
+            network.set_weights(storage.latest_network().get_weights())
+            network.eval()
+            game = play_game(config, network)
+            replay_buffer.save_game(game)
 
-        game_counter += 1
-        if game_counter % 1000 == 0 or game_counter == 1:
-            print('Worker so far played {} games...'.format(game_counter))
+            game_counter += 1
+            if game_counter % 1000 == 0 or game_counter == 1:
+                print('Worker so far played {} games...'.format(game_counter))
 
 
 def mcts_action(config, network, game, exploration_noise=True):

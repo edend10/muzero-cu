@@ -46,6 +46,7 @@ class MuZeroConfig(object):
                  get_env_obs,
                  get_to_play,
                  turn_based,
+                 make_uniform_network,
                  known_bounds: Optional[KnownBounds]=None,
                  optimize_reward=True):
         ### Self-Play
@@ -95,6 +96,7 @@ class MuZeroConfig(object):
         self.get_env_legal_actions = get_env_legal_actions
         self.get_env_obs = get_env_obs
         self.get_to_play = get_to_play
+        self.make_uniform_network = make_uniform_network
         self.turn_based = turn_based
 
     def new_game(self):
@@ -329,7 +331,6 @@ class Network(nn.Module):
 
         self.device = device
         self.config = config
-        self.eval()
 
     def initial_inference(self, image) -> NetworkOutput:
         # representation + prediction function
@@ -355,9 +356,13 @@ class Network(nn.Module):
 
         return NetworkOutput(value, reward, policy_logits, next_state)
 
+    def set_weights(self, weights):
+        self.load_state_dict(weights)
+
     def get_weights(self):
         # Returns the weights of this network.
-        return []
+        # return {k: v.cpu() for k, v in self.state_dict().items()}
+        return self.state_dict()
 
     def training_steps(self) -> int:
         # How many steps / batches the network has been trained for.

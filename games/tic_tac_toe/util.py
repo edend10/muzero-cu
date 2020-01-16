@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from gym_tictactoe.env import TicTacToeEnv, check_game_status
 import games.tic_tac_toe.models
 import games.tic_tac_toe.models_gcn
@@ -17,7 +18,8 @@ def make_config():
         get_env_obs=lambda obs: np.array(obs[0]),
         get_to_play=lambda env: env.mark,
         turn_based=True,
-        optimize_reward=False
+        optimize_reward=False,
+        make_uniform_network=make_uniform_network
     )
 
 
@@ -172,28 +174,29 @@ def lift_over_baseline(name, O_results, X_results, baseline_results_O, baseline_
 
 
 def test_network(config, network, test_network_params, experiment=None):
-    network.eval()
+    with torch.no_grad():
+        network.eval()
 
-    print('testing network...')
+        print('testing network...')
 
-    O_results = network_vs_random(config, network, play_as='O')
-    X_results = network_vs_random(config, network, play_as='X')
+        O_results = network_vs_random(config, network, play_as='O')
+        X_results = network_vs_random(config, network, play_as='X')
 
-    lift_over_baseline(name='random',
-                       O_results=O_results,
-                       X_results=X_results,
-                       baseline_results_O=test_network_params['random'],
-                       baseline_results_X=test_network_params['random'],
-                       experiment=experiment,
-                       steps=network.steps)
+        lift_over_baseline(name='random',
+                           O_results=O_results,
+                           X_results=X_results,
+                           baseline_results_O=test_network_params['random'],
+                           baseline_results_X=test_network_params['random'],
+                           experiment=experiment,
+                           steps=network.steps)
 
-    lift_over_baseline(name='optimal',
-                       O_results=O_results,
-                       X_results=X_results,
-                       baseline_results_O=test_network_params['optimal']['first'],
-                       baseline_results_X=test_network_params['optimal']['second'],
-                       experiment=experiment,
-                       steps=network.steps)
+        lift_over_baseline(name='optimal',
+                           O_results=O_results,
+                           X_results=X_results,
+                           baseline_results_O=test_network_params['optimal']['first'],
+                           baseline_results_X=test_network_params['optimal']['second'],
+                           experiment=experiment,
+                           steps=network.steps)
 
 
 def make_uniform_network(device, config):
