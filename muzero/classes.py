@@ -79,7 +79,7 @@ class MuZeroConfig(object):
         self.test_interval = int(1e3)
         self.window_size = int(1e4)
         self.batch_size = batch_size
-        self.num_unroll_steps = 5
+        self.num_unroll_steps = 9
         self.td_steps = td_steps
 
         self.weight_decay = 1e-4
