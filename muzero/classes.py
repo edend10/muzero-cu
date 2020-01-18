@@ -243,22 +243,32 @@ class Game(object):
     def make_target(self, state_index: int, num_unroll_steps: int, td_steps: int, to_play: Player):
         # The value target is the discounted root value of the search tree N steps
         # into the future, plus the discounted sum of all rewards until then.
+
+        to_play_modifier = 1
+
+        if to_play:
+            to_play_modifier = 1 if to_play.code == 1 else -1
+
         targets = []
         for current_index in range(state_index, state_index + num_unroll_steps + 1):
             bootstrap_index = current_index + td_steps
             if bootstrap_index < len(self.root_values):
-                value = self.root_values[bootstrap_index] * self.discount ** td_steps
+                value = to_play_modifier * self.root_values[bootstrap_index] * self.discount ** td_steps
             else:
                 value = 0
 
             for i, reward in enumerate(self.rewards[current_index:bootstrap_index]):
-                value += reward * self.discount ** i  # pytype: disable=unsupported-operands
+                value += to_play_modifier * reward * self.discount ** i  # pytype: disable=unsupported-operands
 
             if current_index < len(self.root_values):
                 targets.append((value, self.rewards[current_index], self.child_visits[current_index]))
             else:
                 # States past the end of games are treated as absorbing states.
                 targets.append((0, 0, []))
+
+            if to_play:
+                to_play_modifier *= -1
+
         return targets
 
     def to_play(self) -> Player:

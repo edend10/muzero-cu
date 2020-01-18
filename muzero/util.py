@@ -252,8 +252,8 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
         total_loss += reward_loss
 
     optimizer.zero_grad()
-    torch.nn.utils.clip_grad_norm_(network.parameters(), 10)
     total_loss.backward()
+    # torch.nn.utils.clip_grad_norm_(network.parameters(), 10)
     optimizer.step()
 
     if step % config.train_report_interval == 0:
