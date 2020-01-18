@@ -99,9 +99,9 @@ class MuZeroConfig(object):
         self.make_uniform_network = make_uniform_network
         self.turn_based = turn_based
 
-    def new_game(self):
+    def new_game(self, play_as=None):
         return Game(self.action_space_size, self.discount, self.init_env, self.get_env_legal_actions,
-                    self.get_env_obs, self.get_to_play, self.turn_based)
+                    self.get_env_obs, self.get_to_play, self.turn_based, play_as=play_as)
 
 
 class Action(object):
@@ -153,13 +153,14 @@ class ActionHistory(object):
     Only used to keep track of the actions executed.
     """
 
-    def __init__(self, history: List[Action], action_space_size: int, turn_based=True):
+    def __init__(self, history: List[Action], action_space_size: int, play_as, turn_based=True):
         self.history = list(history)
         self.action_space_size = action_space_size
         self.turn_based = turn_based
+        self.play_as = play_as
 
     def clone(self):
-        return ActionHistory(self.history, self.action_space_size, self.turn_based)
+        return ActionHistory(self.history, self.action_space_size, self.play_as, self.turn_based)
 
     def add_action(self, action: Action):
         self.history.append(action)
@@ -171,10 +172,7 @@ class ActionHistory(object):
         return [Action(i) for i in range(self.action_space_size)]
 
     def to_play(self) -> Player:
-        if not self.turn_based or len(self.history) % 2 == 0:
-            return Player('O')
-        else:
-            return Player('X')
+        return Player(self.play_as)
 
 
 class Game(object):
@@ -182,6 +180,7 @@ class Game(object):
 
     def __init__(self, action_space_size: int, discount: float,
                  init_env, get_env_legal_actions, get_env_obs, get_to_play, turn_based,
+                 play_as,
                  history=None,
                  rewards=None,
                  child_visits=None,
@@ -201,6 +200,7 @@ class Game(object):
         self.get_env_obs = get_env_obs
         self.get_to_play = get_to_play
         self.turn_based = turn_based
+        self.play_as = play_as
 
     def terminal(self) -> bool:
         # Game specific termination rules.
@@ -218,6 +218,10 @@ class Game(object):
         if save_history:
             self.history.append(action)
             self.rewards.append(reward)
+
+        if self.play_as:
+            reward_multiplier = -1 if self.play_as == 'X' else 1
+            reward = reward_multiplier * reward
 
         return obs, reward, done
 
@@ -244,21 +248,16 @@ class Game(object):
         # The value target is the discounted root value of the search tree N steps
         # into the future, plus the discounted sum of all rewards until then.
 
-        to_play_modifier = 1
-
-        if to_play:
-            to_play_modifier = 1 if to_play.code == 1 else -1
-
         targets = []
         for current_index in range(state_index, state_index + num_unroll_steps + 1):
             bootstrap_index = current_index + td_steps
             if bootstrap_index < len(self.root_values):
-                value = to_play_modifier * self.root_values[bootstrap_index] * self.discount ** td_steps
+                value = self.root_values[bootstrap_index] * self.discount ** td_steps
             else:
                 value = 0
 
             for i, reward in enumerate(self.rewards[current_index:bootstrap_index]):
-                value += to_play_modifier * reward * self.discount ** i  # pytype: disable=unsupported-operands
+                value += reward * self.discount ** i  # pytype: disable=unsupported-operands
 
             if current_index < len(self.root_values):
                 targets.append((value, self.rewards[current_index], self.child_visits[current_index]))
@@ -266,25 +265,26 @@ class Game(object):
                 # States past the end of games are treated as absorbing states.
                 targets.append((0, 0, []))
 
-            if to_play:
-                to_play_modifier *= -1
-
         return targets
 
     def to_play(self) -> Player:
-        return Player(self.get_to_play(self.environment))
+        return Player(self.play_as)
 
     def action_history(self) -> ActionHistory:
-        return ActionHistory(self.history, self.action_space_size, self.turn_based)
+        return ActionHistory(self.history, self.action_space_size,
+                             self.play_as, self.turn_based)
 
     def clone(self):
         return Game(self.action_space_size,
                       self.discount, self.init_env,
                       self.get_env_legal_actions, self.get_env_obs,
-                      self.get_to_play, self.turn_based,
+                      self.get_to_play, self.turn_based, self.play_as,
                       list(self.history), list(self.rewards),
                       list(self.child_visits), list(self.root_values),
                       self.done)
+
+    def switch_player(self):
+        self.play_as = 'X' if self.play_as == 'O' else 'X'
 
 
 class ReplayBuffer(object):

@@ -81,13 +81,13 @@ def run_selfplay(config: MuZeroConfig,
                 print('Worker so far played {} games...'.format(game_counter))
 
 
-def mcts_action(config, network, game, exploration_noise=True):
+def mcts_action(config, network, game):
     root = Node(0)
     current_observation = game.make_image()
     expand_node(root, game.to_play(), game.legal_actions(),
                 network.initial_inference(current_observation))
-    if exploration_noise:
-        add_exploration_noise(config, root)
+
+    add_exploration_noise(config, root)
 
     # We then run a Monte Carlo Tree Search using only action sequences and the
     # model learned by the network.
@@ -99,7 +99,7 @@ def mcts_action(config, network, game, exploration_noise=True):
 # repeatedly executing a Monte Carlo Tree Search to generate moves until the end
 # of the game is reached.
 def play_game(config: MuZeroConfig, network: Network) -> Game:
-    game = config.new_game()
+    game = config.new_game(play_as='O')
 
     while not game.terminal() and len(game.history) < config.max_moves:
         # At the root of the search tree we use the representation function to
@@ -109,6 +109,7 @@ def play_game(config: MuZeroConfig, network: Network) -> Game:
 
         game.apply(action)
         game.store_search_statistics(root)
+        game.switch_player()
 
     return game
 
@@ -182,7 +183,7 @@ def expand_node(node: Node, to_play: Player, actions: List[Action],
 def backpropagate(search_path: List[Node], value: float, to_play: Player,
                   discount: float, min_max_stats: MinMaxStats):
     for node in search_path:
-        node.value_sum += value if node.to_play == to_play else -value
+        node.value_sum += value # if node.to_play == to_play else -value
         node.visit_count += 1
         min_max_stats.update(node.value())
 

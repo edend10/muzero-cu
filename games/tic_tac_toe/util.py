@@ -11,7 +11,7 @@ def make_config():
     return make_board_game_config(
         action_space_size=9,
         max_moves=9,
-        dirichlet_alpha=0.05,
+        dirichlet_alpha=0.3,
         lr_init=0.001,
         init_env=lambda: TicTacToeEnv(),
         get_env_legal_actions=lambda env: [pos for pos in range(len(env.board)) if env.board[pos] == 0],
@@ -59,11 +59,11 @@ def network_vs_random(config, network, play_as='O', n=1000, scale_to=100):
     for i in range(n):
         first_turn = play_as == 'O'
         turn = first_turn
-        game = config.new_game()
+        game = config.new_game(play_as=play_as)
 
         while not game.terminal():
             if turn:
-                _, action = mcts_action(config, network, game, exploration_noise=False)
+                _, action = mcts_action(config, network, game)
             else:
                 action = np.random.choice(game.legal_actions())
             game.apply(action)

@@ -44,7 +44,7 @@ def network_vs_atari(config, network, n=100):
         game = config.new_game()
 
         while not game.terminal():
-            _, action = mcts_action(config, network, game, exploration_noise=False)
+            _, action = mcts_action(config, network, game)
             game.apply(action)
 
         results.append(sum(game.rewards))
