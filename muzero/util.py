@@ -308,6 +308,17 @@ def train_network(config: MuZeroConfig,
         if test_network and i % config.test_interval == 0:
             test_network(config, network, test_network_params, experiment)
 
+        # for debugging
+        if i == 1 or (i+1) % 100 == 0:
+            params = list(network.prediction.parameters())[0]
+
+            avg_params = torch.mean(params).item()
+            avg_params_grad = torch.mean(params.grad).item()
+
+            if experiment:
+                experiment.log_metric('avg_network_weights', avg_params)
+                experiment.log_metric('avg_network_gradients', avg_params_grad)
+
         batch = replay_buffer.sample_batch(config.num_unroll_steps, config.td_steps)
         update_weights(optimizer, network, batch, i, config, device, experiment)
 
