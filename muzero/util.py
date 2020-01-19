@@ -183,7 +183,7 @@ def expand_node(node: Node, to_play: Player, actions: List[Action],
 def backpropagate(search_path: List[Node], value: float, to_play: Player,
                   discount: float, min_max_stats: MinMaxStats):
     for node in search_path:
-        node.value_sum += value # if node.to_play == to_play else -value
+        node.value_sum += value if node.to_play == to_play else -value
         node.visit_count += 1
         min_max_stats.update(node.value())
 
@@ -222,28 +222,34 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
     for image, actions, targets in batch:
         # Initial step, from the real observation.
         value, reward, policy_logits, hidden_state = network.initial_inference(image)
-        predictions = [(1.0, value, reward, policy_logits)]
 
+        target_value, target_reward, target_policy = targets[0]
+
+        value_loss += mse_criterion(torch.Tensor([target_value]).to(device), value)
+        if config.optimize_reward:
+            reward_loss += mse_criterion(torch.Tensor([target_reward]).to(device), reward)
+
+        policy_loss += -(torch.log_softmax(policy_logits.reshape(1, -1), dim=1) * torch.Tensor(target_policy).to(
+            device)).sum()
+
+        # gradient_scale = 1 / config.num_unroll_steps
         # Recurrent steps, from action and previous hidden state.
-        for action in actions:
-            value, reward, policy_logits, hidden_state = network.recurrent_inference(hidden_state, action.index)
-            predictions.append((1.0 / len(actions), value, reward, policy_logits))
-
-            # TODO: no need to scale gradients in half?
-
-        for prediction, target in zip(predictions, targets):
-            gradient_scale, value, reward, policy_logits = prediction
+        for action, target in zip(actions, targets[1:]):
             target_value, target_reward, target_policy = target
-
             if len(target_policy) > 0:
+                value, reward, policy_logits, hidden_state = network.recurrent_inference(hidden_state, action.index)
+
                 # reward_loss += mse_criterion(torch.Tensor([target_reward]).to(device), reward)
-                value_loss += gradient_scale * mse_criterion(torch.Tensor([target_value]).to(device), value)
+                value_loss += mse_criterion(torch.Tensor([target_value]).to(device), value)
                 if config.optimize_reward:
-                    reward_loss += gradient_scale * mse_criterion(torch.Tensor([target_reward]).to(device), reward)
+                    reward_loss += mse_criterion(torch.Tensor([target_reward]).to(device), reward)
                 # policy_loss += gradient_scale * cross_entropy_criterion(policy_logits.reshape(1, -1),
                 #                                        torch.LongTensor([np.argmax(target_policy)]).to(device))
-                policy_loss += gradient_scale * -(torch.log_softmax(policy_logits.reshape(1, -1), dim=1) * torch.Tensor(target_policy).to(device)).sum()
+                policy_loss += -(
+                            torch.log_softmax(policy_logits.reshape(1, -1), dim=1) * torch.Tensor(target_policy).to(
+                        device)).sum()
 
+                # hidden_state.register_hook(lambda grad: grad / 0.5)
             else:
                 # absorbing state passed end of game
                 pass
@@ -251,6 +257,7 @@ def update_weights(optimizer: torch.optim.Optimizer, network: Network, batch, st
     total_loss = value_loss + policy_loss
     if config.optimize_reward:
         total_loss += reward_loss
+    # total_loss.register_hook(lambda grad: grad / gradient_scale)
 
     optimizer.zero_grad()
     total_loss.backward()

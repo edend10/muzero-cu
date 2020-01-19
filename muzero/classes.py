@@ -172,7 +172,10 @@ class ActionHistory(object):
         return [Action(i) for i in range(self.action_space_size)]
 
     def to_play(self) -> Player:
-        return Player(self.play_as)
+        if not self.turn_based or len(self.history) % 2 == 0:
+            return Player('O')
+        else:
+            return Player('X')
 
 
 class Game(object):
@@ -225,6 +228,9 @@ class Game(object):
 
         return obs, reward, done
 
+    def switch_player(self):
+        self.play_as = 'X' if self.play_as == 'O' else 'O'
+
     def store_search_statistics(self, root: Node):
         sum_visits = sum(child.visit_count for child in root.children.values())
         action_space = (Action(index) for index in range(self.action_space_size))
@@ -268,7 +274,10 @@ class Game(object):
         return targets
 
     def to_play(self) -> Player:
-        return Player(self.play_as)
+        if not self.turn_based or len(self.history) % 2 == 0:
+            return Player('O')
+        else:
+            return Player('X')
 
     def action_history(self) -> ActionHistory:
         return ActionHistory(self.history, self.action_space_size,
@@ -282,9 +291,6 @@ class Game(object):
                       list(self.history), list(self.rewards),
                       list(self.child_visits), list(self.root_values),
                       self.done)
-
-    def switch_player(self):
-        self.play_as = 'X' if self.play_as == 'O' else 'X'
 
 
 class ReplayBuffer(object):
